@@ -80,7 +80,7 @@ class PDFReader:
 		spce_s = ""
 		stats_s = (Back.WHITE + Fore.BLACK+"page " + 
 		str(self.current_page) + "/" + str(self.over_count_page) + " q - exit w - next s - back " + 
-		"w" + str(self.widht_term) + " h"+str(self.height_term) + Style.RESET_ALL)
+		"w" + str(self.widht_term) + " h"+str(self.height_term) + Style.	)
 		spce = ((self.height_term - len(stats_s)) / 2)
 		for i in range(int(spce)): spce_s += " "
 		print(spce_s  + "### "+ stats_s + " ###" + spce_s)
