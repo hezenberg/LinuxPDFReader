@@ -1,14 +1,60 @@
-import sys
 from pypdf import PdfReader
-import os
-import shutil 
-from colorama import Fore, Back, Style
-import tty, termios, sys
 from time import sleep
+import os
+import sys
+import shutil 
+import tty, termios, sys
 
-class CreatePages:
-	def __init__(self):
-		self.height_term, self.widht = shutil.get_terminal_size()
+
+class Interface:
+
+
+	@staticmethod
+	def hide_cursor():
+		sys.stdout.write("\033[?25l")
+		sys.stdout.flush()
+
+
+	@staticmethod
+	def show_cursor():
+		sys.stdout.write("\033[?25h")
+		sys.stdout.flush()
+
+
+	@staticmethod
+	def draw_statbar(current_page, over_page):
+		text = ("page {0}/{1} q - exit pdfr | <-- s | w --> | i - enter page".format(current_page, over_page))
+		print(Interface.draw_text_center(text.strip(), 0, 1))
+
+
+	@staticmethod
+	def draw_hellopage():
+		print(Interface.draw_text_center("Hello its soft by MAXSOFTWARE.\nkey[Q] - exit\nkey[W] - next\nkey[S] - back\nkey[I] - inset page", 1, 1))
+
+	@staticmethod
+	def draw_text_center(text, is_height = False, is_widht = False):
+		ready_text = ''
+		h_spc = ''
+		w_spc = ''
+		w_term, h_term = shutil.get_terminal_size()
+		lines = text.split('\n')
+		lines_len = []
+	
+		if is_widht:
+			for i, val in enumerate(lines):	lines_len.insert(i, len(val)) 
+			max_widht_str = max(lines_len)
+			tab_x = round((w_term - max_widht_str) / 2) 
+			for i in range(tab_x): w_spc += ' '
+		if is_height:
+			tab_y = round((h_term - len(lines)) / 2)
+			for i in range(tab_y): h_spc += '\n'
+
+		for line in lines: ready_text += w_spc + line + '\n'
+		ready_text = h_spc + ready_text
+
+		return ready_text
+
+			
 
 
 
@@ -23,9 +69,6 @@ class PDFReader:
 		self.height_term = 0
 		self.widht_term = 0
 
-		self.old_height_term = 0
-		self.old_widht_term = 0
-
 	def start_program_loop(self):
 		self.get_argv()
 		self.check_file()
@@ -35,8 +78,11 @@ class PDFReader:
 		self.pages = reader.pages
 
 		self.over_count_page = len(self.pages)
-   	
-		self.draw_statbar()
+   		
+		os.system("clear")
+		Interface.hide_cursor()
+		Interface.draw_hellopage()
+		Interface.draw_statbar(self.current_page, self.over_count_page)
 
 		while 1:
 			
@@ -48,17 +94,27 @@ class PDFReader:
 			finally:
 				termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 			if key == 'q':
+				os.system("clear")
 				exit(0)
 			elif key == 'w':
 				self.next_page()
 			elif key == 's':
 				self.back_page()
 			elif key == 'i':
-				self.current_page = int(input("page: "))
+				Interface.show_cursor()
+				try:
+					enter_page = int(input("page: "))
+				except ValueError:
+					print("page its number!")
+					continue
+				if enter_page > self.over_count_page:
+					print("page > {0}".format(self.over_count_page))
+					continue
+				enter_page = int(enter_page)
+				self.current_page = enter_page
 				self.page_draw()
-
+				Interface.hide_cursor()
 			self.update_drawing()
-			sleep(0.30)
 	 
 
 	def get_argv(self):
@@ -68,43 +124,35 @@ class PDFReader:
 			print("pdfr [path_to_pdf]")
 			exit()
 
-
 	def check_file(self):
 		if os.path.isfile(self.file_path) == False:
-			print("pdfr - file not found! runing pdfr only ROOT!")
+			print("pdfr - file not found!")
 			exit(1)
 		self.file = open(self.file_path, "rb")
 
 
-	def draw_statbar(self):
-		spce_s = ""
-		stats_s = (Back.WHITE + Fore.BLACK+"page " + 
-		str(self.current_page) + "/" + str(self.over_count_page) + " q - exit w - next s - back " + 
-		"w" + str(self.widht_term) + " h"+str(self.height_term) + Style.	)
-		spce = ((self.height_term - len(stats_s)) / 2)
-		for i in range(int(spce)): spce_s += " "
-		print(spce_s  + "### "+ stats_s + " ###" + spce_s)
-
-
 	def next_page(self):
-		if self.current_page > self.over_count_page:
-			return
 		self.current_page += 1
 		self.page_draw()
 
 
 	def back_page(self):
-		if self.current_page <= 0:
-			return
 		self.current_page -= 1
 		self.page_draw()
 
 
 	def page_draw(self):
 		os.system("clear")
+		if self.current_page <= 0:
+			Interface.draw_hellopage()
+			self.current_page = 0
+			return
+		if self.current_page > self.over_count_page:
+			self.current_page = self.over_count_page
+			return
 		text_page = self.pages[self.current_page].extract_text()
 		print(text_page)
-		self.draw_statbar()
+		Interface.draw_statbar(self.current_page, self.over_count_page)
 
 
 	def update_drawing(self):
